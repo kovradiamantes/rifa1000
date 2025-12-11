@@ -72,7 +72,6 @@
     border-color: #ff3b3b !important;
     text-decoration: line-through;
   }
-
 </style>
 </head>
 
@@ -98,45 +97,61 @@
 </div>
 
 <script>
-  const ADMIN_KEY = "alexkovra"; // ← CAMBIA ESTO POR TU CLAVE PERSONAL
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxm3xvf1Tm7PmSx6CfZwnZpl0ijXg-MNWEXkSG_9J_rotrCCT2zEQKXk4KsMgyS46HU/exec";
 
+  const ADMIN_KEY = "alexkovra"; 
   const url = new URL(window.location.href);
   const isAdmin = url.searchParams.get("admin") === ADMIN_KEY;
 
   const grid = document.getElementById("grid");
 
-  let vendidos = JSON.parse(localStorage.getItem("vendidos")) || [];
-
-  for (let i = 1; i <= 50; i++) {
-    const div = document.createElement("div");
-    div.classList.add("numero");
-
-    if (isAdmin) {
-      div.classList.add("admin");
+  // Cargar datos desde Google Sheets
+  async function cargarVendidos() {
+    try {
+      const res = await fetch(`${SCRIPT_URL}?action=get`);
+      const vendidos = await res.json();
+      construirGrid(vendidos);
+    } catch (e) {
+      console.error("Error al cargar datos:", e);
     }
-
-    div.textContent = i;
-
-    if (vendidos.includes(i)) {
-      div.classList.add("vendido");
-    }
-
-    if (isAdmin) {
-      div.addEventListener("click", () => {
-        div.classList.toggle("vendido");
-
-        if (div.classList.contains("vendido")) {
-          vendidos.push(i);
-        } else {
-          vendidos = vendidos.filter(num => num !== i);
-        }
-
-        localStorage.setItem("vendidos", JSON.stringify(vendidos));
-      });
-    }
-
-    grid.appendChild(div);
   }
+
+  // Construcción de la tabla
+  function construirGrid(vendidos) {
+    grid.innerHTML = ""; // limpiamos
+
+    for (let i = 1; i <= 50; i++) {
+      const div = document.createElement("div");
+      div.classList.add("numero");
+      if (isAdmin) div.classList.add("admin");
+
+      div.textContent = i;
+
+      if (vendidos.includes(i)) {
+        div.classList.add("vendido");
+      }
+
+      if (isAdmin) {
+        div.addEventListener("click", () => toggleVendido(i, div));
+      }
+
+      grid.appendChild(div);
+    }
+  }
+
+  // Marcar / desmarcar en Google Sheets
+  async function toggleVendido(numero, div) {
+    const nuevoEstado = div.classList.contains("vendido") ? 0 : 1;
+
+    try {
+      await fetch(`${SCRIPT_URL}?action=update&numero=${numero}&estado=${nuevoEstado}&key=${ADMIN_KEY}`);
+      div.classList.toggle("vendido");
+    } catch (e) {
+      console.error("Error actualizando:", e);
+    }
+  }
+
+  cargarVendidos();
 </script>
 
 </body>
