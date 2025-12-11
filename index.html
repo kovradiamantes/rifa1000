@@ -98,8 +98,8 @@
 
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxm3xvf1Tm7PmSx6CfZwnZpl0ijXg-MNWEXkSG_9J_rotrCCT2zEQKXk4KsMgyS46HU/exec";
+const ADMIN_KEY = "alexkovra";
 
-const ADMIN_KEY = "alexkovra"; 
 const url = new URL(window.location.href);
 const isAdmin = url.searchParams.get("admin") === ADMIN_KEY;
 
@@ -107,13 +107,9 @@ const grid = document.getElementById("grid");
 
 // Cargar datos desde Google Sheets
 async function cargarVendidos() {
-  try {
-    const res = await fetch(`${SCRIPT_URL}?action=get`);
-    const data = await res.json();
-    construirGrid(data);
-  } catch (e) {
-    console.error("Error al cargar datos:", e);
-  }
+  const res = await fetch(`${SCRIPT_URL}?action=get`);
+  const data = await res.json();
+  construirGrid(data);
 }
 
 // Construcción de la tabla
@@ -123,11 +119,12 @@ function construirGrid(data) {
   data.forEach(item => {
     const div = document.createElement("div");
     div.classList.add("numero");
+
     if (isAdmin) div.classList.add("admin");
 
     div.innerHTML = `
-      <div>${item.numero}</div>
-      <small style="font-size:12px; color:#ccc">${item.nombre || ""}</small>
+      <div style="font-size:20px; font-weight:600;">${item.numero}</div>
+      <small style="font-size:12px; color:#ccc;">${item.nombre || ""}</small>
     `;
 
     if (item.vendido == 1) {
@@ -135,39 +132,42 @@ function construirGrid(data) {
     }
 
     if (isAdmin) {
-      div.addEventListener("click", () => toggleNumero(item.numero, div, item.nombre, item.vendido));
+      div.addEventListener("click", () => toggleNumero(item));
     }
 
     grid.appendChild(div);
   });
 }
 
-// Marcar / desmarcar / asignar nombre
-async function toggleNumero(numero, div, nombreActual, vendidoActual) {
-
-  if (vendidoActual == 0) {
-    // Marcar → pedir nombre
-    let nombre = prompt("Nombre del comprador:");
+// Acción al marcar / desmarcar
+async function toggleNumero(item) {
+  if (item.vendido == 0) {
+    // Marcar: pedir nombre
+    const nombre = prompt("Nombre del comprador:");
 
     if (!nombre || nombre.trim() === "") {
       alert("Debes ingresar un nombre.");
       return;
     }
 
-    await fetch(`${SCRIPT_URL}?action=update&numero=${numero}&vendido=1&nombre=${encodeURIComponent(nombre)}&key=${ADMIN_KEY}`);
+    await fetch(
+      `${SCRIPT_URL}?action=update&numero=${item.numero}&vendido=1&nombre=${encodeURIComponent(nombre)}&key=${ADMIN_KEY}`
+    );
 
   } else {
-    // Desmarcar → confirmar
-    let confirmar = confirm("¿Deseas liberar este número?");
+    // Liberar número
+    const confirmar = confirm("¿Deseas liberar este número?");
     if (!confirmar) return;
 
-    await fetch(`${SCRIPT_URL}?action=update&numero=${numero}&vendido=0&nombre=&key=${ADMIN_KEY}`);
+    await fetch(
+      `${SCRIPT_URL}?action=update&numero=${item.numero}&vendido=0&nombre=&key=${ADMIN_KEY}`
+    );
   }
 
-  // Recargar
   cargarVendidos();
 }
 
+// Ejecutar
 cargarVendidos();
 </script>
 
